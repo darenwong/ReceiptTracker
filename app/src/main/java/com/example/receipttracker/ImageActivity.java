@@ -22,7 +22,6 @@ public class ImageActivity extends AppCompatActivity {
         Bundle extras = getIntent().getExtras();
 
         backButton = findViewById(R.id.backButton);
-        retakeButton = findViewById(R.id.retakeButton);
         imageReceiptView = findViewById(R.id.imageReceiptView);
 
         if (extras != null){
@@ -37,11 +36,5 @@ public class ImageActivity extends AppCompatActivity {
             }
         });
 
-        retakeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
     }
 }

@@ -54,6 +54,7 @@ public class ReceiptInfoDialog extends DialogFragment {
     private TextInputEditText editTextNote;
     private AutoCompleteTextView textViewDate;
     private ImageView imageViewReceipt;
+    private AutoCompleteTextView receiptTakePhotoBtn;
 
     private String currency;
     private ReceiptListAdapter receiptAdapter;
@@ -112,6 +113,7 @@ public class ReceiptInfoDialog extends DialogFragment {
                         receipt.setCurrency(currency);
                         receipt.setDate(selectedDate);
                         receipt.setNote(editTextNote.getText().toString());
+                        receipt.setImage(receiptTakePhotoBtn.getText().toString());
 
                         getActivity().getPreferences(MODE_PRIVATE).edit().putString("saved_currency", currency).apply();
 
@@ -131,12 +133,14 @@ public class ReceiptInfoDialog extends DialogFragment {
         textViewDate = view.findViewById(R.id.receipt_date);
         editTextNote = view.findViewById(R.id.note);
         imageViewReceipt = view.findViewById(R.id.receipt_photo);
+        receiptTakePhotoBtn = view.findViewById(R.id.receipt_take_photo);
 
         editTextAmount.setText(String.valueOf(receipt.getAmount()));
         editTextTitle.setText(receipt.getTitle());
         editTextNote.setText(receipt.getNote());
         imageViewReceipt.setImageURI(Uri.parse(receipt.getImage()));
         currency = receipt.getCurrency();
+        receiptTakePhotoBtn.setText(receipt.getImage());
 
         selectedDate = receipt.getDate();
 
@@ -146,7 +150,13 @@ public class ReceiptInfoDialog extends DialogFragment {
                 Intent receiptImageIntent = new Intent(getActivity(), ImageActivity.class);
                 receiptImageIntent.putExtra("image", receipt.getImage());
                 startActivity(receiptImageIntent);
+            }
+        });
 
+        receiptTakePhotoBtn.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                ((MainActivity)getActivity()).askCameraPermissions();
             }
         });
 
@@ -160,20 +170,6 @@ public class ReceiptInfoDialog extends DialogFragment {
                 final Calendar c = Calendar.getInstance();
                 c.setTime(selectedDate);
 
-                /*
-                DatePickerDialog dpd = new DatePickerDialog(getContext(),
-                    new DatePickerDialog.OnDateSetListener() {
-
-                        @Override
-                        public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                            //textViewDate.setText(dayOfMonth + "-" + (monthOfYear + 1) + "-" + year);
-                            Calendar c = Calendar.getInstance();
-                            c.set(year, monthOfYear, dayOfMonth,0,0);
-                            textViewDate.setText(fmtOut.format(c.getTime()));
-                            selectedDate = c.getTime();
-                        }
-                    }, c.get(Calendar.YEAR),c.get(Calendar.MONTH),c.get(Calendar.DATE));
-                dpd.show();*/
 
                 MaterialDatePicker datePicker =
                     MaterialDatePicker.Builder.datePicker()
@@ -278,5 +274,8 @@ public class ReceiptInfoDialog extends DialogFragment {
         return builder.create();
     }
 
-
+    public void updateReceiptPhoto(String uri){
+        receiptTakePhotoBtn.setText(uri);
+        imageViewReceipt.setImageURI(Uri.parse(uri));
+    };
 }

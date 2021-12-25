@@ -1,36 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:contentDescription="@string/app_name"
+        android:drawableLeft="@drawable/ic_baseline_receipt_long_24_white"
+        android:drawablePadding="4dp"
+        android:gravity="center_vertical"
+        android:padding="10dp"
+        android:scaleType="center"
+        android:text="Receipt Details"
+        android:textColor="@color/white"
+        android:textSize="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="10dp"
+        tools:layout_editor_absoluteY="10dp" />
 
     <ScrollView
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/dialogTitle">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_margin="10dp"
             android:orientation="vertical">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/colorPrimary"
-                android:contentDescription="@string/app_name"
-                android:text="Receipt Details"
-                android:textSize="20dp"
-                android:padding="10dp"
-                android:drawablePadding="4dp"
-                android:gravity="center_vertical"
-                android:textColor="@color/white"
-                android:scaleType="center"
-                android:drawableLeft="@drawable/ic_baseline_receipt_long_24_white"/>
 
 
             <LinearLayout
@@ -89,14 +95,13 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginRight="4dp"
                 android:layout_marginBottom="4dp"
-                app:boxBackgroundColor="@color/white"
-                android:hint="Title">
+                android:hint="Title"
+                app:boxBackgroundColor="@color/white">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/title"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    />
+                    android:layout_height="wrap_content" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -113,9 +118,9 @@
 
                 <AutoCompleteTextView
                     android:id="@+id/category"
-                    android:hint="Category"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:hint="Category"
                     android:inputType="none" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -140,7 +145,25 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginRight="4dp"
+                android:layout_marginBottom="4dp"
+                app:boxBackgroundColor="@color/white"
+                app:endIconDrawable="@drawable/ic_baseline_photo_camera_24">
 
+                <AutoCompleteTextView
+                    android:id="@+id/receipt_take_photo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Photo"
+                    android:inputType="none" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
             <ImageView
                 android:id="@+id/receipt_photo"
@@ -152,15 +175,13 @@
                 android:src="@drawable/ic_launcher_background" />
 
 
-
-
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginLeft="4dp"
                 android:layout_marginTop="4dp"
                 android:layout_marginRight="4dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="200dp"
                 app:boxBackgroundColor="@color/white">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -174,4 +195,6 @@
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
     </ScrollView>
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

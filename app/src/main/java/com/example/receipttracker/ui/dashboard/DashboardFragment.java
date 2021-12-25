@@ -21,11 +21,15 @@ import com.example.receipttracker.MainActivity;
 import com.example.receipttracker.R;
 import com.example.receipttracker.Receipt;
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
@@ -40,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -53,6 +58,7 @@ public class DashboardFragment extends Fragment {
     private ArrayAdapter<Integer> yearAdapter;
 
     private BarChart chart;
+    private PieChart pieChart;
 
     private ArrayList<Receipt> receiptArrayList;
 
@@ -65,6 +71,7 @@ public class DashboardFragment extends Fragment {
     private HashMap<String, HashMap<Integer, List<Float>>> receiptMap = new HashMap<String, HashMap<Integer, List<Float>>>();
     private HashMap<String, HashSet<Integer>> receiptCurrencyToYearMap = new HashMap<String, HashSet<Integer>>();
     private HashMap<Integer, HashSet<String>> receiptYearToCurrencyMap = new HashMap<Integer, HashSet<String>>();
+    private HashMap<String, HashMap<Integer, HashMap<String, Float>>> receiptCategoryMap = new HashMap<String, HashMap<Integer, HashMap<String, Float>>>();
 
     private TextView totalAmountTextView;
     private TextView totalReceiptsTextView;
@@ -102,8 +109,8 @@ public class DashboardFragment extends Fragment {
 
         updateBarChart();
 
-
-
+        pieChart = root.findViewById(R.id.pieChart_view);
+        showPieChart();
         return root;
     }
 
@@ -180,6 +187,7 @@ public class DashboardFragment extends Fragment {
                 Log.i("new year", selectedCurrency +" "+yearList.toString());
                 yearAdapter.notifyDataSetChanged();
                 updateBarChart();
+                showPieChart();
             }
         });
     }
@@ -213,6 +221,7 @@ public class DashboardFragment extends Fragment {
                 currencyAdapter.notifyDataSetChanged();
                 Log.i("new currency", selectedYear +" "+currencyList.toString());
                 updateBarChart();
+                showPieChart();
             }
 
         });
@@ -269,6 +278,25 @@ public class DashboardFragment extends Fragment {
 
             Float currentTotalReceipt = receiptMap.get(currency).get(receiptYear).get(receiptMonth+12);
             receiptMap.get(currency).get(receiptYear).set(receiptMonth + 12, currentTotalReceipt + 1);
+
+            if (receiptCategoryMap.containsKey(currency) == false){
+                receiptCategoryMap.put(currency, new HashMap<Integer, HashMap<String, Float>>());
+            }
+
+            if (receiptCategoryMap.get(currency).containsKey(receiptYear) == false){
+                receiptCategoryMap.get(currency).put(receiptYear, new HashMap<String, Float>());
+
+                receiptCategoryMap.get(currency).get(receiptYear).put("Housing", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Transport", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Food", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Utilities", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Healthcare", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Entertainment", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Lifestyle", 0f);
+                receiptCategoryMap.get(currency).get(receiptYear).put("Other", 0f);
+            }
+            Float categoryTotal = receiptCategoryMap.get(currency).get(receiptYear).get(receipt.getCategory());
+            receiptCategoryMap.get(currency).get(receiptYear).put(receipt.getCategory(), categoryTotal + receipt.getAmount());
         }
 
 
@@ -321,58 +349,55 @@ public class DashboardFragment extends Fragment {
         xAxis.add("Dec");
         return xAxis;
     }
-    /*
-    private ArrayList getDataSet() {
-        ArrayList dataSets = null;
-        List<Float> data = receiptMap.get()
-        ArrayList valueSet1 = new ArrayList();
-        BarEntry v1e1 = new BarEntry(0, 110.000f); // Jan
 
-        valueSet1.add(v1e1);
-        BarEntry v1e2 = new BarEntry(1, 40.000f); // Feb
-        valueSet1.add(v1e2);
-        BarEntry v1e3 = new BarEntry(2, 60.000f); // Mar
-        valueSet1.add(v1e3);
-        BarEntry v1e4 = new BarEntry(3, 30.000f); // Apr
-        valueSet1.add(v1e4);
-        BarEntry v1e5 = new BarEntry(4, 90.000f); // May
-        valueSet1.add(v1e5);
-        BarEntry v1e6 = new BarEntry(5,100.000f); // Jun
-        valueSet1.add(v1e6);
+    private void showPieChart(){
 
-        ArrayList valueSet2 = new ArrayList();
-        BarEntry v2e1 = new BarEntry(0,150.000f); // Jan
-        valueSet2.add(v2e1);
-        BarEntry v2e2 = new BarEntry(1, 90.000f); // Feb
-        valueSet2.add(v2e2);
-        BarEntry v2e3 = new BarEntry(2, 120.000f); // Mar
-        valueSet2.add(v2e3);
-        BarEntry v2e4 = new BarEntry(3,60.000f); // Apr
-        valueSet2.add(v2e4);
-        BarEntry v2e5 = new BarEntry(4,20.000f); // May
-        valueSet2.add(v2e5);
-        BarEntry v2e6 = new BarEntry(5,80.000f); // Jun
-        valueSet2.add(v2e6);
+        ArrayList<PieEntry> pieEntries = new ArrayList<>();
+        String label = "";
 
-        BarDataSet barDataSet1 = new BarDataSet(valueSet1, "Brand 1");
-        barDataSet1.setColor(Color.rgb(0, 155, 0));
-        BarDataSet barDataSet2 = new BarDataSet(valueSet2, "Brand 2");
-        barDataSet2.setColor(Color.rgb(0, 0, 155));
+        //initializing data
+        Map<String, Float> typeAmountMap = receiptCategoryMap.get(selectedCurrency).get(selectedYear);
 
-        dataSets = new ArrayList();
-        dataSets.add(barDataSet1);
-        dataSets.add(barDataSet2);
-        return dataSets;
+        //initializing colors for the entries
+        ArrayList<Integer> colors = new ArrayList<>();
+        colors.add(Color.parseColor("#304567"));
+        colors.add(Color.parseColor("#309967"));
+        colors.add(Color.parseColor("#476567"));
+        colors.add(Color.parseColor("#890567"));
+        colors.add(Color.parseColor("#a35567"));
+        colors.add(Color.parseColor("#ff5f67"));
+        colors.add(Color.parseColor("#bb86fc"));
+        colors.add(Color.parseColor("#6200ee"));
+
+        //input data and fit data into pie chart entry
+        for(String type: typeAmountMap.keySet()){
+            pieEntries.add(new PieEntry(typeAmountMap.get(type).floatValue(), type));
+        }
+
+        //collecting the entries with label name
+        PieDataSet pieDataSet = new PieDataSet(pieEntries,label);
+        //setting text size of the value
+        pieDataSet.setValueTextSize(12f);
+        //providing color list for coloring different entries
+        pieDataSet.setColors(colors);
+        pieDataSet.setDrawValues(false);
+        //pieDataSet.setXValuePosition(PieDataSet.ValuePosition.OUTSIDE_SLICE);
+        //pieDataSet.setYValuePosition(PieDataSet.ValuePosition.OUTSIDE_SLICE);
+        //pieChart.setEntryLabelColor(Color.BLACK);
+
+
+        //grouping the data set from entry to chart
+        PieData pieData = new PieData(pieDataSet);
+        //showing the value of the entries, default true if not set
+
+
+        pieChart.setData(pieData);
+        pieChart.animateXY(1000,1000);
+        pieChart.setDrawEntryLabels(false);
+        pieChart.getDescription().setEnabled(false);
+
+        pieChart.getLegend().setWordWrapEnabled(true);
+        pieChart.invalidate();
     }
 
-    private ArrayList getXAxisValues() {
-        ArrayList xAxis = new ArrayList();
-        xAxis.add("JAN");
-        xAxis.add("FEB");
-        xAxis.add("MAR");
-        xAxis.add("APR");
-        xAxis.add("MAY");
-        xAxis.add("JUN");
-        return xAxis;
-    }*/
 }

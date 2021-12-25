@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.AutoCompleteTextView;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.Filter;
@@ -185,8 +186,13 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             @Override
             public void onClick(View v) {
                 Log.i("ask camera permission", "asked");
-                askCameraPermissions();
+                //askCameraPermissions();
 
+
+                Receipt newReceipt = new Receipt(0.0f, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), "", "Other", "", "", false, false );
+
+                receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
+                receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
             }
         });
 
@@ -450,7 +456,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
 
 
-    private void askCameraPermissions() {
+    public void askCameraPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, 101);
         } else {
@@ -493,11 +499,9 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
                 Receipt newReceipt = new Receipt(0.0f, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), "", "Other", "", contentUri.toString(), false, false );
 
-
-
-
-                receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
-                receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
+                receiptInfoDialog.updateReceiptPhoto(contentUri.toString());
+                //receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
+                //receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
             }
         }
     }
