@@ -219,85 +219,6 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         uncheckAllReceipts();
 
 
-
-/*
-        exportToCSV = findViewById(R.id.exportToCSV);
-
-        exportToCSV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if (checkIsEmpty() == true){
-                    Toast.makeText(getApplicationContext(),"Please select items to export",Toast.LENGTH_SHORT).show();
-                    return ;
-                }
-
-                //Creating the instance of PopupMenu
-                PopupMenu popup = new PopupMenu(MainActivity.this, exportToCSV);
-                //Inflating the Popup using xml file
-                popup.getMenuInflater().inflate(R.menu.popup_menu, popup.getMenu());
-
-                //registering popup with OnMenuItemClickListener
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(MenuItem item) {
-                        Toast.makeText(MainActivity.this,"You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
-                        exportToCSV();
-                        return true;
-                    }
-                });
-
-                popup.show();//showing popup menu
-            }
-        });
-
-        deleteBtn = findViewById(R.id.deleteButton);
-        deleteBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (checkIsEmpty() == true){
-                    Toast.makeText(getApplicationContext(),"No item selected to delete",Toast.LENGTH_SHORT).show();
-                    return ;
-                }
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-
-
-                //Setting message manually and performing action on button click
-                builder.setMessage("Are you sure you want to delete these receipts?")
-                        .setCancelable(false)
-                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                ArrayList<Receipt> newReceiptArrayList = new ArrayList<Receipt>();
-                                for (Receipt receipt: receiptArrayList){
-                                    if (receipt.getChecked() == false){
-                                        newReceiptArrayList.add(receipt);
-                                    }
-                                }
-
-
-                                Toast.makeText(getApplicationContext(),"Deleted " + (newReceiptArrayList.size() - receiptArrayList.size()) + " receipts", Toast.LENGTH_SHORT).show();
-
-                                receiptArrayList = newReceiptArrayList;
-                                refreshReceiptAdapterArrayList();
-                                adapter.notifyDataSetChanged();
-                                saveData();
-                            }
-                        })
-                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                //  Action for 'NO' Button
-                                dialog.cancel();
-                            }
-                        });
-                //Creating dialog box
-                AlertDialog alert = builder.create();
-                //Setting the title manually
-                alert.setTitle("Delete Receipts");
-                alert.show();
-
-
-            }
-        });*/
     }
 
     public void onExportButtonClick(View v) {
@@ -628,19 +549,6 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             Log.i("error", "no camera activity");
         }
     }
-/*
-    public void openDatePickerDialog(View v) {
-        DialogFragment newFragment = new DatePickerFragment();
-        newFragment.show(getSupportFragmentManager(), "datePicker");
-    }
-
-
-
-    public void openReceiptInfoDialog(View v) {
-        ReceiptInfoDialog receiptInfoDialog = new ReceiptInfoDialog();
-        receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
-    }*/
-
 
 
 }
