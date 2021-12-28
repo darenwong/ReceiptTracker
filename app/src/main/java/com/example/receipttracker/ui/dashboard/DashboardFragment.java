@@ -325,7 +325,7 @@ public class DashboardFragment extends Fragment {
         }
 
         totalAmountTextView.setText(selectedCurrency + " " + totalAmount);
-        totalReceiptsTextView.setText(totalReceipts.toString());
+        totalReceiptsTextView.setText(String.valueOf(Math.round(totalReceipts)));
 
         BarDataSet barDataSet = new BarDataSet(valueSet, selectedCurrency);
         barDataSet.setColor(Color.rgb(98, 0, 238));

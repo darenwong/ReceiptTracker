@@ -9,6 +9,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.util.Pair;
 import androidx.navigation.ui.AppBarConfiguration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -18,11 +20,20 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -33,6 +44,8 @@ import android.widget.Filter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,6 +59,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import org.w3c.dom.Text;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -56,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+
 
 
 public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog.FragmentReceiptListener, FilterDateDialog.FragmentFilterDateListener {
@@ -243,7 +259,12 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             public boolean onMenuItemClick(MenuItem item) {
                 Toast.makeText(getApplicationContext(),"You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
-                exportToCSV();
+
+                if (item.getTitle() == "CSV"){
+                    exportToCSV();
+                } else {
+                    exportToPDF();
+                }
                 return true;
             }
         });
@@ -398,9 +419,19 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         if (receiptArrayList.size() > 0){
             Collections.sort(receiptArrayList, Collections.reverseOrder());
 
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(filterStartDate);
+            cal.add(Calendar.DATE, -1);
+            Date oneDayBeforeStart = cal.getTime();
+
+            cal.setTime(filterEndDate);
+            cal.add(Calendar.DATE, 1);
+            Date oneDayAfterEnd = cal.getTime();
+
             for (Integer i = 0; i<receiptArrayList.size(); i++){
                 Date receiptDate = receiptArrayList.get(i).getDate();
-                if (receiptDate.before(filterStartDate) == true || receiptDate.after(filterEndDate) == true){
+                Log.i("receipt details", receiptDate.toString());
+                if ((receiptDate.before(oneDayAfterEnd) == true && receiptDate.after(oneDayBeforeStart) == true) == false){
                     continue;
                 }
 
@@ -554,5 +585,207 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         }
     }
 
+    public void exportToPDF(){
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.pdf_layout, null);
+
+        ArrayList<Receipt> checkedReceipts = new ArrayList<>();
+
+        for (Integer i = 0; i < receiptArrayList.size(); i++){
+            Receipt receipt = receiptArrayList.get(i);
+            if (receipt.getChecked() == true){
+                checkedReceipts.add(receipt);
+            }
+        }
+
+        PDFRecyclerAdapter pdfRecyclerAdapter = new PDFRecyclerAdapter(this, checkedReceipts);
+
+        RecyclerView recyclerView = view.findViewById(R.id.pdf_marks);
+        recyclerView.setLayoutManager(new LinearLayoutManager(view.getContext()));
+
+        recyclerView.setAdapter(pdfRecyclerAdapter);
+
+
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            this.getDisplay().getRealMetrics(displayMetrics);
+        } else {
+            this.getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        }
+
+        view.measure(
+                View.MeasureSpec.makeMeasureSpec(
+                        displayMetrics.widthPixels, View.MeasureSpec.EXACTLY
+                ),
+                View.MeasureSpec.makeMeasureSpec(
+                        displayMetrics.heightPixels, View.MeasureSpec.EXACTLY
+                )
+        );
+
+        view.layout(0,0, displayMetrics.widthPixels, displayMetrics.heightPixels);
+        Bitmap bitmap = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+
+        //Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, 297, 421, true);
+        Bitmap newBitmap = getResizedBitmap(bitmap, 595, 842);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            PdfDocument pdfDocument = new PdfDocument();
+            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
+
+            PdfDocument.Page page = pdfDocument.startPage(pageInfo);
+            page.getCanvas().drawBitmap(newBitmap, 0f, 0f, null);
+            pdfDocument.finishPage(page);
+
+            for (Integer i = 1; i < checkedReceipts.size()+1; i++){
+                Receipt receipt = checkedReceipts.get(i-1);
+
+                PdfDocument.Page photoPage = pdfDocument.startPage(pageInfo);
+                Bitmap receiptBitmap = null;
+                try {
+                    photoPage.getCanvas().drawText(Integer.toString(i) + ". " + receipt.getTitle() + " - " + receipt.getCurrency() + " " + receipt.getAmount(), 10, 25, new Paint());
+
+                    receiptBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Uri.parse(receiptArrayList.get(0).getImage()));
+                    Bitmap newBitmap2 = Bitmap.createScaledBitmap(receiptBitmap, 500, 710, true);
+                    photoPage.getCanvas().drawBitmap(newBitmap2, 50f, 50f, null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                pdfDocument.finishPage(photoPage);
+            }
+
+
+
+            File file   = null;
+            File root   = Environment.getExternalStorageDirectory();
+            if (root.canWrite()){
+                File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+                dir.mkdirs();
+                file   =   new File(dir, "Data.pdf");
+                FileOutputStream out   =   null;
+                try {
+                    out = new FileOutputStream(file);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    pdfDocument.writeTo(out);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                pdfDocument.close();
+            }
+
+            Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
+            //u1  =   Uri.fromFile(file);
+
+            Intent sendIntent = new Intent(Intent.ACTION_SEND);
+
+            sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            //sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Person Details");
+            sendIntent.putExtra(Intent.EXTRA_STREAM, u1);
+            sendIntent.setType("text/pdf");
+
+            Intent shareIntent = Intent.createChooser(sendIntent, "Share File");
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            startActivity(shareIntent);
+        }
+
+    }
+
+    public Bitmap getResizedBitmap(Bitmap bitmap, int newWidth, int newHeight) {
+        Bitmap scaledBitmap = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
+
+        float ratioX = newWidth / (float) bitmap.getWidth();
+        float ratioY = newHeight / (float) bitmap.getHeight();
+        float middleX = newWidth / 2.0f;
+        float middleY = newHeight / 2.0f;
+
+        Matrix scaleMatrix = new Matrix();
+        scaleMatrix.setScale(ratioX, ratioY, middleX, middleY);
+
+        Canvas canvas = new Canvas(scaledBitmap);
+        canvas.setMatrix(scaleMatrix);
+        canvas.drawBitmap(bitmap, middleX - bitmap.getWidth() / 2, middleY - bitmap.getHeight() / 2, new Paint(Paint.FILTER_BITMAP_FLAG));
+
+        return scaledBitmap;
+    }
+
+    /*
+    public void exportToPDF(){
+        // create a new document
+        PdfDocument document = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            document = new PdfDocument();
+            // crate a page description
+            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(800, 1124, 1).create();
+
+            // start a page
+            PdfDocument.Page page = document.startPage(pageInfo);
+
+
+
+            TableLayout simpleTableLayout = new TableLayout(this);
+            TableRow newRow = new TableRow(this);
+            TextView newText = new TextView(this);
+            newText.setText("test");
+            newRow.addView(newText);
+            simpleTableLayout.addView(newRow);
+
+            // draw something on the page
+            View content = MainActivity.this.getLayoutInflater().inflate(R.layout.pdf_layout, null);
+            content.measure(800, 1124);
+            content.layout(0, 0, 800, 1124);
+            content.draw(page.getCanvas());
+
+            //Paint myPaint = new Paint();
+
+            //page.getCanvas().drawText("test pdf", 10, 25, myPaint);
+
+            // finish the page
+            document.finishPage(page);
+
+
+
+            File file   = null;
+            File root   = Environment.getExternalStorageDirectory();
+            if (root.canWrite()){
+                File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+                dir.mkdirs();
+                file   =   new File(dir, "Data.pdf");
+                FileOutputStream out   =   null;
+                try {
+                    out = new FileOutputStream(file);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    document.writeTo(out);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                document.close();
+            }
+
+            Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
+            //u1  =   Uri.fromFile(file);
+
+            Intent sendIntent = new Intent(Intent.ACTION_SEND);
+
+            sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            //sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Person Details");
+            sendIntent.putExtra(Intent.EXTRA_STREAM, u1);
+            sendIntent.setType("text/pdf");
+
+            Intent shareIntent = Intent.createChooser(sendIntent, "Share File");
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            startActivity(shareIntent);
+        }
+
+    }*/
 
 }
