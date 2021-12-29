@@ -171,7 +171,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:background="#FFFFBB33"
-                android:scaleType="center"
+                android:scaleType="centerCrop"
+                android:adjustViewBounds="true"
                 android:src="@drawable/ic_launcher_background" />
 
 

@@ -39,12 +39,17 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/spinner_currency_container"
-                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense.ExposedDropdownMenu"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:hint="Currency"
-                app:boxBackgroundColor="@color/white"
+                android:textColorHint="@color/white"
+                app:boxStrokeColor="@color/white"
+                app:counterTextColor="@color/white"
+                app:endIconTint="@color/white"
+                app:helperTextTextColor="@color/white"
+                app:hintTextColor="@color/white"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
@@ -53,27 +58,39 @@
                     android:id="@+id/spinner_currency"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none" />
+                    android:inputType="none"
+                    android:textColor="@color/white"
+                    android:textColorHint="@color/white" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/spinner_year_container"
-                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense.ExposedDropdownMenu"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
                 android:hint="Year"
-                app:boxBackgroundColor="@color/white"
+                android:textColorHint="@color/white"
+                app:endIconTint="@color/white"
+                app:helperTextTextColor="@color/white"
+                app:hintTextColor="@color/white"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@+id/spinner_currency_container"
-                app:layout_constraintTop_toTopOf="parent">
+                app:layout_constraintTop_toTopOf="parent"
+                app:passwordToggleTint="@color/white"
+                app:placeholderTextColor="@color/white"
+                app:startIconTint="@color/white"
+                app:boxStrokeColor="@color/white"
+                app:boxStrokeErrorColor="@color/white">
 
                 <AutoCompleteTextView
                     android:id="@+id/spinner_year"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none" />
+                    android:inputType="none"
+                    android:textColor="@color/white"
+                    android:textColorHint="@color/white" />
 
             </com.google.android.material.textfield.TextInputLayout>
 

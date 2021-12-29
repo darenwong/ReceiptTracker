@@ -148,7 +148,7 @@ public class ReceiptInfoDialog extends DialogFragment {
             @Override
             public void onClick(View v) {
                 Intent receiptImageIntent = new Intent(getActivity(), ImageActivity.class);
-                receiptImageIntent.putExtra("image", receipt.getImage());
+                receiptImageIntent.putExtra("image", receiptTakePhotoBtn.getText().toString());
                 startActivity(receiptImageIntent);
             }
         });
@@ -277,5 +277,24 @@ public class ReceiptInfoDialog extends DialogFragment {
     public void updateReceiptPhoto(String uri){
         receiptTakePhotoBtn.setText(uri);
         imageViewReceipt.setImageURI(Uri.parse(uri));
+
+        //Uri testUri = Uri.parse("android.resource://com.example.receipttracker/" + R.drawable._096_receipt);
+        //imageViewReceipt.setImageURI(testUri);
+        //receiptTakePhotoBtn.setText(testUri.toString());
     };
+
+    public void updateReceiptTitle(String title){
+        Log.i("new editTextTitle", title);
+        Log.i("editTextTitle", editTextTitle.getText().toString());
+        if (editTextTitle.getText().toString().isEmpty()){
+            editTextTitle.setText(title);
+        }
+    }
+
+    public void updateReceiptTotal(Float amount){
+        Log.i("new editTextTotal", amount.toString());
+        if (editTextAmount.getText().toString().isEmpty() == true|| Float.parseFloat(editTextAmount.getText().toString()) == 0.0f){
+            editTextAmount.setText(amount.toString());
+        }
+    }
 }

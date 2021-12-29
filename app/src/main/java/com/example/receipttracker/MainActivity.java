@@ -21,6 +21,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -52,14 +54,21 @@ import android.widget.Toast;
 import com.example.receipttracker.ui.dashboard.DashboardFragment;
 import com.example.receipttracker.ui.home.HomeFragment;
 import com.example.receipttracker.ui.notifications.NotificationsFragment;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -71,7 +80,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog.FragmentReceiptListener, FilterDateDialog.FragmentFilterDateListener {
@@ -94,6 +104,11 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     private ReceiptInfoDialog receiptInfoDialog;
 
+    private TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+    private InputImage receiptImage;
+
+    private String receiptTitle = "";
+    private Float receiptTotal = 0.0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -528,7 +543,74 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 mediaScanIntent.setData(contentUri);
                 this.sendBroadcast(mediaScanIntent);
 
-                Receipt newReceipt = new Receipt(0.0f, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), "", "Other", "", contentUri.toString(), false, false );
+                try {
+                    receiptImage = InputImage.fromFilePath(this, contentUri);
+                    //Uri testUri = Uri.parse("android.resource://com.example.receipttracker/" + R.drawable._096_receipt);
+
+                    //receiptImage = InputImage.fromFilePath(this, testUri);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+                Task<Text> result =
+                        recognizer.process(receiptImage)
+                                .addOnSuccessListener(new OnSuccessListener<Text>() {
+                                    @Override
+                                    public void onSuccess(Text visionText) {
+                                        Log.i("process image status: ", "success");
+                                        String resultText = visionText.getText();
+                                        Log.i("visionText: ", resultText);
+                                        Pattern pattern = Pattern.compile("([0-9]+\\.[0-9]+)");
+                                        ArrayList<Float> listOfHeadings = new ArrayList<>();
+
+                                        Matcher match = pattern.matcher(resultText);
+                                        while (match.find()) {
+                                            listOfHeadings.add(Float.parseFloat(match.group()));
+                                        }
+
+                                        if (!visionText.getTextBlocks().isEmpty() && !visionText.getTextBlocks().get(0).getLines().isEmpty()){
+                                            receiptTitle = visionText.getTextBlocks().get(0).getLines().get(0).getText();
+                                        }
+                                        if (!listOfHeadings.isEmpty()){
+                                            receiptTotal = Collections.max(listOfHeadings);
+                                        }
+
+                                        Log.i("regex result", listOfHeadings.toString());
+                                        Log.i("title", receiptTitle);
+                                        Log.i("total: ", receiptTotal.toString());
+
+                                        receiptInfoDialog.updateReceiptTitle(receiptTitle);
+                                        receiptInfoDialog.updateReceiptTotal(receiptTotal);
+                                        /*
+                                        for (Text.TextBlock block : visionText.getTextBlocks()) {
+                                            String blockText = block.getText();
+                                            Point[] blockCornerPoints = block.getCornerPoints();
+                                            Rect blockFrame = block.getBoundingBox();
+                                            for (Text.Line line : block.getLines()) {
+                                                String lineText = line.getText();
+                                                Point[] lineCornerPoints = line.getCornerPoints();
+                                                Rect lineFrame = line.getBoundingBox();
+                                                for (Text.Element element : line.getElements()) {
+                                                    String elementText = element.getText();
+                                                    Point[] elementCornerPoints = element.getCornerPoints();
+                                                    Rect elementFrame = element.getBoundingBox();
+                                                }
+                                            }
+                                        }*/
+;                                    }
+                                })
+                                .addOnFailureListener(
+                                    new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    });
+
+
+
+                Receipt newReceipt = new Receipt(receiptTotal, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), receiptTitle, "Other", "", contentUri.toString(), false, false );
 
                 receiptInfoDialog.updateReceiptPhoto(contentUri.toString());
                 //receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
@@ -647,7 +729,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 try {
                     photoPage.getCanvas().drawText(Integer.toString(i) + ". " + receipt.getTitle() + " - " + receipt.getCurrency() + " " + receipt.getAmount(), 10, 25, new Paint());
 
-                    receiptBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Uri.parse(receiptArrayList.get(0).getImage()));
+                    receiptBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Uri.parse(receipt.getImage()));
                     Bitmap newBitmap2 = Bitmap.createScaledBitmap(receiptBitmap, 500, 710, true);
                     photoPage.getCanvas().drawBitmap(newBitmap2, 50f, 50f, null);
                 } catch (IOException e) {
