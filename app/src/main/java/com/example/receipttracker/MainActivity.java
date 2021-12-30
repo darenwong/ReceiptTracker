@@ -1,3 +1,5 @@
+
+
 package com.example.receipttracker;
 
 import androidx.annotation.NonNull;
@@ -192,15 +194,15 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                         filterEndDate.getTime());
 
                 MaterialDatePicker dateRangePicker =
-                    MaterialDatePicker.Builder.dateRangePicker()
-                        .setTitleText("Select dates")
-                        .setSelection(selectionDates)
-                        .build();
+                        MaterialDatePicker.Builder.dateRangePicker()
+                                .setTitleText("Select dates")
+                                .setSelection(selectionDates)
+                                .build();
 
                 dateRangePicker.addOnPositiveButtonClickListener(new MaterialPickerOnPositiveButtonClickListener<Pair>() {
                     @Override
                     public void onPositiveButtonClick(Pair selection) {
-                        Log.i("selected dates", selection.toString());
+                        //Log.i("selected dates", selection.toString());
                         onInputFilterDateSent(new Date((Long) selection.first), new Date((Long) selection.second));
                     }
                 });
@@ -216,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         cameraBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.i("ask camera permission", "asked");
+                //Log.i("ask camera permission", "asked");
                 //askCameraPermissions();
 
 
@@ -236,10 +238,10 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             public void onItemClick(AdapterView<?> parent, View view,
                                     final int position, long id) {
 
-                Log.i("selectedReceipt", "receipt clicked");
+                //Log.i("selectedReceipt", "receipt clicked");
                 Receipt selectedReceipt = (Receipt) parent.getItemAtPosition(position);
 
-                if (selectedReceipt.getSummary() == true){
+                if (selectedReceipt.getSummary()){
                     return ;
                 }
 
@@ -298,7 +300,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
         //Setting message manually and performing action on button click
         builder.setMessage("Are you sure you want to delete these receipts?")
-            .setCancelable(false)
+                .setCancelable(false)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         ArrayList<Receipt> newReceiptArrayList = new ArrayList<Receipt>();
@@ -398,7 +400,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     @Override
     public void onInputReceiptSent(Receipt receipt, Boolean isCreateNew) {
-        Log.i("received data", isCreateNew.toString());
+        //Log.i("received data", isCreateNew.toString());
         if (isCreateNew == true){
             receiptArrayList.add(receipt);
         }
@@ -409,7 +411,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     @Override
     public void onInputFilterDateSent(Date startDate, Date endDate) {
-        Log.i("received date", startDate.toString());
+        //Log.i("received date", startDate.toString());
 
         filterStartDate = startDate;
         filterEndDate = endDate;
@@ -445,7 +447,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
             for (Integer i = 0; i<receiptArrayList.size(); i++){
                 Date receiptDate = receiptArrayList.get(i).getDate();
-                Log.i("receipt details", receiptDate.toString());
+                //Log.i("receipt details", receiptDate.toString());
                 if ((receiptDate.before(oneDayAfterEnd) == true && receiptDate.after(oneDayBeforeStart) == true) == false){
                     continue;
                 }
@@ -456,7 +458,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 if (i > 0){
                     before = new SimpleDateFormat("dd-MM-yyyy").format(receiptArrayList.get(i-1).getDate());
                 }
-                Log.i(String.valueOf(i), before + " vs " + after);
+                //Log.i(String.valueOf(i), before + " vs " + after);
                 if (i == 0 || !before.equals(after)){
                     receiptAdapterArrayList.add(new Receipt(null, null, receiptArrayList.get(i).getDate(), null, null, null, null, true, false));
                 }
@@ -506,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, 101);
         } else {
-            Log.i("existing Permission", String.valueOf(Manifest.permission.CAMERA));
+            //Log.i("existing Permission", String.valueOf(Manifest.permission.CAMERA));
             openCamera();
         }
     }
@@ -517,7 +519,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
         if (requestCode == 101){
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                Log.i("grantResult", String.valueOf(grantResults));ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, 101);
+                //Log.i("grantResult", String.valueOf(grantResults));ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, 101);
                 openCamera();
             } else {
                 Toast.makeText(this, "Camera Permission is Required to use camera", Toast.LENGTH_SHORT).show();
@@ -558,9 +560,9 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                                 .addOnSuccessListener(new OnSuccessListener<Text>() {
                                     @Override
                                     public void onSuccess(Text visionText) {
-                                        Log.i("process image status: ", "success");
+                                        //Log.i("process image status: ", "success");
                                         String resultText = visionText.getText();
-                                        Log.i("visionText: ", resultText);
+                                        //Log.i("visionText: ", resultText);
                                         Pattern pattern = Pattern.compile("([0-9]+\\.[0-9]+)");
                                         ArrayList<Float> listOfHeadings = new ArrayList<>();
 
@@ -576,9 +578,9 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                                             receiptTotal = Collections.max(listOfHeadings);
                                         }
 
-                                        Log.i("regex result", listOfHeadings.toString());
-                                        Log.i("title", receiptTitle);
-                                        Log.i("total: ", receiptTotal.toString());
+                                        //Log.i("regex result", listOfHeadings.toString());
+                                        //Log.i("title", receiptTitle);
+                                        //Log.i("total: ", receiptTotal.toString());
 
                                         receiptInfoDialog.updateReceiptTitle(receiptTitle);
                                         receiptInfoDialog.updateReceiptTotal(receiptTotal);
@@ -598,15 +600,15 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                                                 }
                                             }
                                         }*/
-;                                    }
+                                        ;                                    }
                                 })
                                 .addOnFailureListener(
-                                    new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    });
+                                        new OnFailureListener() {
+                                            @Override
+                                            public void onFailure(@NonNull Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        });
 
 
 
@@ -648,7 +650,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // Error occurred while creating the File
-                Log.i("error", "error");
+                //Log.i("error", "error");
                 ex.printStackTrace();
             }
             // Continue only if the File was successfully created
@@ -657,13 +659,13 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                         BuildConfig.APPLICATION_ID + ".provider",
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                Log.i("camera status", "opening");
+                //Log.i("camera status", "opening");
                 startActivityForResult(takePictureIntent, 102);
             } else {
-                Log.i("error", "photoFile is null");
+                //Log.i("error", "photoFile is null");
             }
         } else {
-            Log.i("error", "no camera activity");
+            //Log.i("error", "no camera activity");
         }
     }
 
@@ -796,78 +798,5 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         return scaledBitmap;
     }
 
-    /*
-    public void exportToPDF(){
-        // create a new document
-        PdfDocument document = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-            document = new PdfDocument();
-            // crate a page description
-            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(800, 1124, 1).create();
-
-            // start a page
-            PdfDocument.Page page = document.startPage(pageInfo);
-
-
-
-            TableLayout simpleTableLayout = new TableLayout(this);
-            TableRow newRow = new TableRow(this);
-            TextView newText = new TextView(this);
-            newText.setText("test");
-            newRow.addView(newText);
-            simpleTableLayout.addView(newRow);
-
-            // draw something on the page
-            View content = MainActivity.this.getLayoutInflater().inflate(R.layout.pdf_layout, null);
-            content.measure(800, 1124);
-            content.layout(0, 0, 800, 1124);
-            content.draw(page.getCanvas());
-
-            //Paint myPaint = new Paint();
-
-            //page.getCanvas().drawText("test pdf", 10, 25, myPaint);
-
-            // finish the page
-            document.finishPage(page);
-
-
-
-            File file   = null;
-            File root   = Environment.getExternalStorageDirectory();
-            if (root.canWrite()){
-                File dir    =   new File (root.getAbsolutePath() + "/PersonData");
-                dir.mkdirs();
-                file   =   new File(dir, "Data.pdf");
-                FileOutputStream out   =   null;
-                try {
-                    out = new FileOutputStream(file);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    document.writeTo(out);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                document.close();
-            }
-
-            Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
-            //u1  =   Uri.fromFile(file);
-
-            Intent sendIntent = new Intent(Intent.ACTION_SEND);
-
-            sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            //sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Person Details");
-            sendIntent.putExtra(Intent.EXTRA_STREAM, u1);
-            sendIntent.setType("text/pdf");
-
-            Intent shareIntent = Intent.createChooser(sendIntent, "Share File");
-            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-            startActivity(shareIntent);
-        }
-
-    }*/
 
 }

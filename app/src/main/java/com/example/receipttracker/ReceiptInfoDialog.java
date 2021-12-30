@@ -180,7 +180,7 @@ public class ReceiptInfoDialog extends DialogFragment {
                 datePicker.addOnPositiveButtonClickListener(new MaterialPickerOnPositiveButtonClickListener<Long>() {
                     @Override
                     public void onPositiveButtonClick(Long selection) {
-                        Log.i("selected dates", selection.toString());
+                        //Log.i("selected dates", selection.toString());
 
                         textViewDate.setText(fmtOut.format(new Date((Long) selection)));
                         selectedDate = new Date((Long) selection);
@@ -216,20 +216,7 @@ public class ReceiptInfoDialog extends DialogFragment {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             dropdown.setText(currency, false);
         }
-/*
-        dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
 
-                Log.i("dropdown id", String.valueOf(position));
-                currency = items.get(position).toString();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
-*/
         dropdown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -284,15 +271,15 @@ public class ReceiptInfoDialog extends DialogFragment {
     };
 
     public void updateReceiptTitle(String title){
-        Log.i("new editTextTitle", title);
-        Log.i("editTextTitle", editTextTitle.getText().toString());
+        //Log.i("new editTextTitle", title);
+        //Log.i("editTextTitle", editTextTitle.getText().toString());
         if (editTextTitle.getText().toString().isEmpty()){
             editTextTitle.setText(title);
         }
     }
 
     public void updateReceiptTotal(Float amount){
-        Log.i("new editTextTotal", amount.toString());
+        //Log.i("new editTextTotal", amount.toString());
         if (editTextAmount.getText().toString().isEmpty() == true|| Float.parseFloat(editTextAmount.getText().toString()) == 0.0f){
             editTextAmount.setText(amount.toString());
         }

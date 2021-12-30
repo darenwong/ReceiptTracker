@@ -36,7 +36,7 @@ public class ReceiptListAdapter extends ArrayAdapter<Receipt> {
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-        Log.i("getView", getItem(position).toString());
+        //Log.i("getView", getItem(position).toString());
         if (getItem(position) != null && getItem(position).getSummary() == false) {
             Float amount = getItem(position).getAmount();
             String currency = getItem(position).getCurrency();
@@ -71,7 +71,7 @@ public class ReceiptListAdapter extends ArrayAdapter<Receipt> {
             rCheck.setChecked(getItem(position).getChecked());
 
             rTitle.setText(title);
-            rAmount.setText(currency + " " + String.valueOf(amount));
+            rAmount.setText(currency + " " + String.format("%.02f", amount));
             rImage.setImageURI(Uri.parse(image));
 
         } else {

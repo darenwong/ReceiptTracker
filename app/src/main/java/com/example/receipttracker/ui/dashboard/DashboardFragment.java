@@ -85,7 +85,7 @@ public class DashboardFragment extends Fragment {
         totalAmountTextView = root.findViewById(R.id.totalAmount);
         totalReceiptsTextView = root.findViewById(R.id.totalReceipts);
 
-        Log.i("selectedCurrency", selectedCurrency.toString());
+        //i("selectedCurrency", selectedCurrency.toString());
         setUpSpinnerCurrency(root);
         setUpSpinnerYear(root);
 
@@ -184,7 +184,7 @@ public class DashboardFragment extends Fragment {
                 yearList.addAll(new ArrayList<Integer>(receiptCurrencyToYearMap.get(selectedCurrency)));
                 currencyAdapter.notifyDataSetChanged();
 
-                Log.i("new year", selectedCurrency +" "+yearList.toString());
+                //Log.i("new year", selectedCurrency +" "+yearList.toString());
                 yearAdapter.notifyDataSetChanged();
                 updateBarChart();
                 showPieChart();
@@ -219,7 +219,7 @@ public class DashboardFragment extends Fragment {
                 currencyList.clear();
                 currencyList.addAll(new ArrayList<String>(receiptYearToCurrencyMap.get(selectedYear)));
                 currencyAdapter.notifyDataSetChanged();
-                Log.i("new currency", selectedYear +" "+currencyList.toString());
+                //Log.i("new currency", selectedYear +" "+currencyList.toString());
                 updateBarChart();
                 showPieChart();
             }
@@ -323,8 +323,8 @@ public class DashboardFragment extends Fragment {
                 totalReceipts += receiptMap.get(selectedCurrency).get(selectedYear).get(i+12);
             }
         }
-
-        totalAmountTextView.setText(selectedCurrency + " " + totalAmount);
+        String tempAmount = selectedCurrency + " " + String.format("%.02f", totalAmount);
+        totalAmountTextView.setText(tempAmount);
         totalReceiptsTextView.setText(String.valueOf(Math.round(totalReceipts)));
 
         BarDataSet barDataSet = new BarDataSet(valueSet, selectedCurrency);
