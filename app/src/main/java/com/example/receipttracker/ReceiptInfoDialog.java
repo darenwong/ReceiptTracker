@@ -39,11 +39,11 @@ import java.util.Collections;
 import java.util.Currency;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import static android.content.Context.MODE_PRIVATE;
 
-@RequiresApi(api = Build.VERSION_CODES.KITKAT)
 public class ReceiptInfoDialog extends DialogFragment {
 
     private FragmentReceiptListener listener;
@@ -58,7 +58,6 @@ public class ReceiptInfoDialog extends DialogFragment {
 
     private String currency;
     private ReceiptListAdapter receiptAdapter;
-    private Set<Currency> currencies = Currency.getAvailableCurrencies();
 
     private Receipt receipt;
     private Boolean isCreateNew;
@@ -161,7 +160,7 @@ public class ReceiptInfoDialog extends DialogFragment {
         });
 
         SimpleDateFormat fmtOut = new SimpleDateFormat("dd-MMM-yyyy");
-        textViewDate.setText(fmtOut.format(receipt.getDate()), false);
+        textViewDate.setText(fmtOut.format(receipt.getDate()));
 
         textViewDate.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -199,10 +198,34 @@ public class ReceiptInfoDialog extends DialogFragment {
         //create a list of items for the spinner.
         List items = new ArrayList();
 
-        for (Currency currency: currencies) {
-            //System.out.printf("%s\t%s\t%s\n",currency.getDisplayName(), currency.getSymbol(), currency.toString());
-            items.add(currency.toString());
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            Set<Currency> currencies = Currency.getAvailableCurrencies();
+            for (Currency currency: currencies) {
+                //System.out.printf("%s\t%s\t%s\n",currency.getDisplayName(), currency.getSymbol(), currency.toString());
+                items.add(currency.toString());
+            }
+        } else {
+            ArrayList <String> currencies = new ArrayList <String> ();
+            Locale[] locales = Locale.getAvailableLocales();
+            for (Locale locale: locales) {
+                try {
+                    String val = Currency.getInstance(locale).getCurrencyCode();
+                    if (!currencies.contains(val))
+                        currencies.add(val);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            for (String currencyCode: currencies) {
+                try {
+                    Currency currency = Currency.getInstance(currencyCode);
+                    items.add(currency.getCurrencyCode());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
+
 
         Collections.sort(items);
 
@@ -246,9 +269,7 @@ public class ReceiptInfoDialog extends DialogFragment {
 
         //dropdown.setSelection(adapter.getPosition(currency));
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            editTextCategory.setText(receipt.getCategory(), false);
-        }
+        editTextCategory.setText(receipt.getCategory());
 
         editTextCategory.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -284,4 +305,6 @@ public class ReceiptInfoDialog extends DialogFragment {
             editTextAmount.setText(amount.toString());
         }
     }
+
+
 }

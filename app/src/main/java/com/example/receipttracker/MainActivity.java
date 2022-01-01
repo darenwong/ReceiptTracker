@@ -56,9 +56,15 @@ import android.widget.Toast;
 import com.example.receipttracker.ui.dashboard.DashboardFragment;
 import com.example.receipttracker.ui.home.HomeFragment;
 import com.example.receipttracker.ui.notifications.NotificationsFragment;
+import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClickListener;
@@ -72,7 +78,10 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -84,6 +93,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+
 
 
 public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog.FragmentReceiptListener, FilterDateDialog.FragmentFilterDateListener {
@@ -112,10 +125,22 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
     private String receiptTitle = "";
     private Float receiptTotal = 0.0f;
 
+    private AdView mAdView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+/*
+        MobileAds.initialize(this, new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            }
+        });
+        mAdView = findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
+*/
         Toolbar myToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
 
@@ -277,11 +302,22 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             public boolean onMenuItemClick(MenuItem item) {
                 Toast.makeText(getApplicationContext(),"You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
 
-                if (item.getTitle() == "CSV"){
-                    exportToCSV();
-                } else {
-                    exportToPDF();
+                switch (item.getTitle().toString()){
+                    case "CSV":
+                        exportToCSV();
+                        break;
+                    case "PDF":
+                        exportToPDF();
+                        break;
+                    case "ZIP":
+                        try {
+                            exportToZIP();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        break;
                 }
+
                 return true;
             }
         });
@@ -342,60 +378,6 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             }
         }
         return checkedItemIsEmpty;
-    }
-
-    public void exportToCSV(){
-        String columnString =   "\"No\",\"Date\",\"Title\",\"Category\",\"Currency\",\"Amount\",\"Note\"";
-        String combinedString = columnString;
-
-        for (Integer i = 0; i < receiptArrayList.size(); i++){
-            Receipt receipt = receiptArrayList.get(i);
-            if (receipt.getChecked() == true){
-                String dataString   =   "\"" + Integer.toString(i+1) +"\",\"" + receipt.getDate().toString() +"\",\"" + receipt.getTitle() + "\",\"" + receipt.getCategory() + "\",\"" + receipt.getCurrency() + "\",\"" + receipt.getAmount().toString() + "\", \"" + receipt.getNote() + "\"";
-
-                combinedString += "\n" + dataString;
-            }
-        }
-
-
-        File file   = null;
-        File root   = Environment.getExternalStorageDirectory();
-        if (root.canWrite()){
-            File dir    =   new File (root.getAbsolutePath() + "/PersonData");
-            dir.mkdirs();
-            file   =   new File(dir, "Data.csv");
-            FileOutputStream out   =   null;
-            try {
-                out = new FileOutputStream(file);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-            try {
-                out.write(combinedString.getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                out.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
-        //u1  =   Uri.fromFile(file);
-
-        Intent sendIntent = new Intent(Intent.ACTION_SEND);
-
-        sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        //sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Person Details");
-        sendIntent.putExtra(Intent.EXTRA_STREAM, u1);
-        sendIntent.setType("text/csv");
-
-        Intent shareIntent = Intent.createChooser(sendIntent, "Share File");
-        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-        startActivity(shareIntent);
     }
 
     @Override
@@ -669,10 +651,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         }
     }
 
-    public void exportToPDF(){
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View view = inflater.inflate(R.layout.pdf_layout, null);
-
+    public ArrayList<Receipt> getCheckedReceipts(){
         ArrayList<Receipt> checkedReceipts = new ArrayList<>();
 
         for (Integer i = 0; i < receiptArrayList.size(); i++){
@@ -681,6 +660,69 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 checkedReceipts.add(receipt);
             }
         }
+
+        return checkedReceipts;
+    }
+
+    public void exportToCSV(){
+        String columnString =   "\"No\",\"Date\",\"Title\",\"Category\",\"Currency\",\"Amount\",\"Note\"";
+        String combinedString = columnString;
+
+        for (Integer i = 0; i < receiptArrayList.size(); i++){
+            Receipt receipt = receiptArrayList.get(i);
+            if (receipt.getChecked() == true){
+                String dataString   =   "\"" + Integer.toString(i+1) +"\",\"" + receipt.getDate().toString() +"\",\"" + receipt.getTitle() + "\",\"" + receipt.getCategory() + "\",\"" + receipt.getCurrency() + "\",\"" + receipt.getAmount().toString() + "\", \"" + receipt.getNote() + "\"";
+
+                combinedString += "\n" + dataString;
+            }
+        }
+
+
+        File file   = null;
+        File root   = Environment.getExternalStorageDirectory();
+        if (root.canWrite()){
+            File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+            dir.mkdirs();
+            file   =   new File(dir, "Data.csv");
+            FileOutputStream out   =   null;
+            try {
+                out = new FileOutputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            try {
+                out.write(combinedString.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
+        //u1  =   Uri.fromFile(file);
+
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
+
+        sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        //sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Person Details");
+        sendIntent.putExtra(Intent.EXTRA_STREAM, u1);
+        sendIntent.setType("text/csv");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, "Share File");
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        startActivity(shareIntent);
+    }
+
+    public void exportToPDF(){
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.pdf_layout, null);
+
+        ArrayList<Receipt> checkedReceipts = getCheckedReceipts();
 
         PDFRecyclerAdapter pdfRecyclerAdapter = new PDFRecyclerAdapter(this, checkedReceipts);
 
@@ -778,6 +820,72 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             startActivity(shareIntent);
         }
 
+    }
+
+    public void exportToZIP() throws IOException {
+        File file   = null;
+        File root   = Environment.getExternalStorageDirectory();
+        if (root.canWrite()){
+            File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+            dir.mkdirs();
+            file   =   new File(dir, "Data.zip");
+            ZipOutputStream out = null;
+
+            try {
+                out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            ArrayList<Receipt> checkedReceipts = getCheckedReceipts();
+
+            Integer BUFFER_SIZE = 1024;
+            byte data[] = new byte[BUFFER_SIZE];
+
+            for (Integer i = 1; i < checkedReceipts.size()+1; i++) {
+                Receipt receipt = checkedReceipts.get(i - 1);
+
+                FileInputStream fi = null;
+                BufferedInputStream origin = null;
+                try {
+                    fi = openFileInput(receipt.getImage());
+                    //fi = new FileInputStream(getContentResolver().openFileDescriptor(Uri.parse(receipt.getImage()), "r").getFileDescriptor());
+                    origin = new BufferedInputStream(fi, BUFFER_SIZE);
+                    ZipEntry entry = new ZipEntry(receipt.getImage().substring(receipt.getImage().lastIndexOf("/")+1));
+
+                    out.putNextEntry(entry);
+                    int count;
+                    while ((count = origin.read(data, 0, BUFFER_SIZE)) != -1) {
+                        out.write(data, 0, count);
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                finally {
+                    if (origin != null) {
+                        origin.close();
+                    }
+                }
+            }
+            out.close();
+
+        }
+
+        Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
+        //u1  =   Uri.fromFile(file);
+
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
+
+        sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        //sendIntent.putExtra(Intent.EXTRA_SUBJECT, "Person Details");
+        sendIntent.putExtra(Intent.EXTRA_STREAM, u1);
+        sendIntent.setType("application/zip");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, "Share File");
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        startActivity(shareIntent);
     }
 
     public Bitmap getResizedBitmap(Bitmap bitmap, int newWidth, int newHeight) {

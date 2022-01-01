@@ -31,6 +31,11 @@ import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -49,6 +54,8 @@ import java.util.Map;
 import static android.content.Context.MODE_PRIVATE;
 
 public class DashboardFragment extends Fragment {
+
+    private AdView mAdView;
 
     private AutoCompleteTextView spinnerCurrency;
     private AutoCompleteTextView spinnerYear;
@@ -79,8 +86,19 @@ public class DashboardFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
+
         loadData();
         View root = inflater.inflate(R.layout.fragment_dashboard, container, false);
+
+
+        MobileAds.initialize(getActivity(), new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            }
+        });
+        mAdView = root.findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequest);
 
         totalAmountTextView = root.findViewById(R.id.totalAmount);
         totalReceiptsTextView = root.findViewById(R.id.totalReceipts);
