@@ -57,12 +57,13 @@ public class ReceiptInfoDialog extends DialogFragment {
     private AutoCompleteTextView receiptTakePhotoBtn;
 
     private String currency;
+    private String category;
     private ReceiptListAdapter receiptAdapter;
 
     private Receipt receipt;
     private Boolean isCreateNew;
 
-    private Date selectedDate;
+    private Date selectedDate = new Date();
 
     public ReceiptInfoDialog(Receipt receipt, ReceiptListAdapter adapter, Boolean isCreateNew) {
         this.receipt = receipt;
@@ -108,12 +109,12 @@ public class ReceiptInfoDialog extends DialogFragment {
                         // sign in the user ...
                         receipt.setTitle(editTextTitle.getText().toString());
                         receipt.setAmount(Float.parseFloat(editTextAmount.getText().toString()));
-                        receipt.setCategory(editTextCategory.getText().toString());
+                        receipt.setCategory(category);
                         receipt.setCurrency(currency);
                         receipt.setDate(selectedDate);
                         receipt.setNote(editTextNote.getText().toString());
                         receipt.setImage(receiptTakePhotoBtn.getText().toString());
-
+                        Log.i("receipt date: ", selectedDate.toString());
                         getActivity().getPreferences(MODE_PRIVATE).edit().putString("saved_currency", currency).apply();
 
                         //receiptAdapter.notifyDataSetChanged();
@@ -268,13 +269,14 @@ public class ReceiptInfoDialog extends DialogFragment {
 
 
         //dropdown.setSelection(adapter.getPosition(currency));
-
-        editTextCategory.setText(receipt.getCategory());
+        category = receipt.getCategory();
+        editTextCategory.setText(receipt.getCategory(), false);
 
         editTextCategory.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                editTextCategory.setText(categoryItems.get(position).toString());
+                //editTextCategory.setText(categoryItems.get(position).toString());
+                category = categoryItems.get(position).toString();
             }
         });
 
@@ -301,10 +303,19 @@ public class ReceiptInfoDialog extends DialogFragment {
 
     public void updateReceiptTotal(Float amount){
         //Log.i("new editTextTotal", amount.toString());
+        editTextAmount.setText(amount.toString());
+        /*
         if (editTextAmount.getText().toString().isEmpty() == true|| Float.parseFloat(editTextAmount.getText().toString()) == 0.0f){
             editTextAmount.setText(amount.toString());
-        }
+        }*/
     }
 
-
+    public void updateReceiptDate(Date date){
+        //Log.i("new editTextTotal", amount.toString());
+        //textViewDate.setText(date.toString());
+        Log.i("updateReceiptDate: ", date.toString());
+        SimpleDateFormat fmtOut = new SimpleDateFormat("dd-MMM-yyyy");
+        textViewDate.setText(fmtOut.format(date));
+        selectedDate = date;
+    }
 }

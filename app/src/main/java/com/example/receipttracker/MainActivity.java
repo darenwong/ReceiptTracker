@@ -2,6 +2,10 @@
 
 package com.example.receipttracker;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -56,14 +60,9 @@ import android.widget.Toast;
 import com.example.receipttracker.ui.dashboard.DashboardFragment;
 import com.example.receipttracker.ui.home.HomeFragment;
 import com.example.receipttracker.ui.notifications.NotificationsFragment;
-import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.datepicker.MaterialDatePicker;
@@ -71,6 +70,15 @@ import com.google.android.material.datepicker.MaterialPickerOnPositiveButtonClic
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.google.mlkit.nl.entityextraction.DateTimeEntity;
+import com.google.mlkit.nl.entityextraction.Entity;
+import com.google.mlkit.nl.entityextraction.EntityAnnotation;
+import com.google.mlkit.nl.entityextraction.EntityExtraction;
+import com.google.mlkit.nl.entityextraction.EntityExtractionParams;
+import com.google.mlkit.nl.entityextraction.EntityExtractor;
+import com.google.mlkit.nl.entityextraction.EntityExtractorOptions;
+import com.google.mlkit.nl.entityextraction.FlightNumberEntity;
+import com.google.mlkit.nl.entityextraction.MoneyEntity;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -91,6 +99,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -124,8 +133,9 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     private String receiptTitle = "";
     private Float receiptTotal = 0.0f;
+    private Date receiptDateOCR = new Date();
 
-    private AdView mAdView;
+    private ActivityResultLauncher<Intent> takePictureResultLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -153,11 +163,17 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
             public void onCheckedChanged(CompoundButton buttonView,
                                          boolean isChecked) {
                 if (isChecked) {
-                    for (Receipt receipt: receiptArrayList){
+                    for (Receipt receipt: receiptAdapterArrayList){
+                        if (receipt.getSummary() == true) {
+                            continue;
+                        }
                         receipt.setChecked(true);
                     }
                 } else {
-                    for (Receipt receipt: receiptArrayList){
+                    for (Receipt receipt: receiptAdapterArrayList){
+                        if (receipt.getSummary() == true) {
+                            continue;
+                        }
                         receipt.setChecked(false);
                     }
                 }
@@ -282,6 +298,171 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         recordListView.setAdapter(adapter);
         uncheckAllReceipts();
 
+        takePictureResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK){
+                            File f = new File(currentPhotoPath);
+
+                            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                            Uri contentUri = Uri.fromFile(f);
+                            mediaScanIntent.setData(contentUri);
+                            sendBroadcast(mediaScanIntent);
+
+                            try {
+                                receiptImage = InputImage.fromFilePath(getApplicationContext(), contentUri);
+                                //Uri testUri = Uri.parse("android.resource://com.example.receipttracker/" + R.drawable._096_receipt);
+
+                                //receiptImage = InputImage.fromFilePath(getApplicationContext(), testUri);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+
+                            Task<Text> mlResult =
+                                    recognizer.process(receiptImage)
+                                            .addOnSuccessListener(new OnSuccessListener<Text>() {
+                                                @Override
+                                                public void onSuccess(Text visionText) {
+                                                    //Log.i("process image status: ", "success");
+                                                    String resultText = visionText.getText();
+                                                    //Log.i("visionText: ", resultText);
+                                                    Pattern pattern = Pattern.compile("([0-9]+\\.[0-9]+)");
+                                                    ArrayList<Float> listOfHeadings = new ArrayList<>();
+
+                                                    Matcher match = pattern.matcher(resultText);
+                                                    while (match.find()) {
+                                                        listOfHeadings.add(Float.parseFloat(match.group()));
+                                                    }
+
+                                                    if (!visionText.getTextBlocks().isEmpty() && !visionText.getTextBlocks().get(0).getLines().isEmpty()){
+                                                        receiptTitle = visionText.getTextBlocks().get(0).getLines().get(0).getText();
+                                                    }
+                                                    if (!listOfHeadings.isEmpty()){
+                                                        receiptTotal = Collections.max(listOfHeadings);
+                                                    }
+
+                                                    EntityExtractor entityExtractor =
+                                                            EntityExtraction.getClient(
+                                                                    new EntityExtractorOptions.Builder(EntityExtractorOptions.ENGLISH)
+                                                                            .build());
+                                                    entityExtractor
+                                                            .downloadModelIfNeeded()
+                                                            .addOnSuccessListener(
+                                                                    aVoid -> {
+                                                                        // Model downloading succeeded, you can call the extraction API here.
+
+                                                                        EntityExtractionParams params = new EntityExtractionParams
+                                                                                .Builder(visionText.getText())
+                                                                                .build();
+                                                                        entityExtractor
+                                                                                .annotate(params)
+                                                                                .addOnSuccessListener(new OnSuccessListener<List<EntityAnnotation>>() {
+                                                                                    @Override
+                                                                                    public void onSuccess(List<EntityAnnotation> entityAnnotations) {
+                                                                                        // Annotation process was successful, you can parse the EntityAnnotations list here.
+                                                                                        String TAG = "Entity found";
+                                                                                        ArrayList<Float> listOfAmount = new ArrayList<>();
+
+                                                                                        for (EntityAnnotation entityAnnotation : entityAnnotations) {
+                                                                                            List<Entity> entities = entityAnnotation.getEntities();
+                                                                                            String annotatedText = entityAnnotation.getAnnotatedText();
+
+                                                                                            //Log.d(TAG, String.format("Range: [%d, %d)", entityAnnotation.getStart(), entityAnnotation.getEnd()));
+                                                                                            for (Entity entity : entities) {
+                                                                                                switch (entity.getType()) {
+                                                                                                    case Entity.TYPE_DATE_TIME:
+                                                                                                        DateTimeEntity dateTimeEntity = entity.asDateTimeEntity();
+                                                                                                        Log.i(TAG, "Granularity: " + dateTimeEntity.getDateTimeGranularity());
+                                                                                                        Log.i(TAG, "Timestamp: " + dateTimeEntity.getTimestampMillis());
+                                                                                                        receiptDateOCR = new Date(dateTimeEntity.getTimestampMillis());
+                                                                                                        Log.i(TAG, "DateTime: " + receiptDateOCR.toString());
+                                                                                                        break;
+                                                                                                    case Entity.TYPE_ADDRESS:
+                                                                                                        Log.i(TAG, "Address: " + annotatedText);
+                                                                                                        //receiptTitle = annotatedText;
+                                                                                                        break;
+                                                                                                    case Entity.TYPE_MONEY:
+                                                                                                        MoneyEntity moneyEntity = entity.asMoneyEntity();
+                                                                                                        Log.i(TAG, "Currency: " + moneyEntity.getUnnormalizedCurrency());
+                                                                                                        Log.i(TAG, "Integer Part: " + moneyEntity.getIntegerPart());
+                                                                                                        Log.i(TAG, "Fractional Part: " + moneyEntity.getFractionalPart());
+
+                                                                                                        //listOfAmount.add((float) moneyEntity.getIntegerPart() + ((float) moneyEntity.getFractionalPart())/100);
+
+                                                                                                        break;
+                                                                                                    default:
+                                                                                                        Log.i(TAG, "Entity: " + entity.getType());
+                                                                                                        break;
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                        //if (!listOfAmount.isEmpty()){
+                                                                                        //    receiptTotal = Collections.max(listOfAmount);
+                                                                                        //}
+                                                                                        receiptInfoDialog.updateReceiptTitle(receiptTitle);
+                                                                                        receiptInfoDialog.updateReceiptTotal(receiptTotal);
+                                                                                        receiptInfoDialog.updateReceiptDate(receiptDateOCR);
+                                                                                    }
+                                                                                })
+                                                                                .addOnFailureListener(new OnFailureListener() {
+                                                                                    @Override
+                                                                                    public void onFailure(@NonNull Exception e) {
+                                                                                        // Check failure message here.
+                                                                                    }
+                                                                                });
+
+                                                                    })
+                                                            .addOnFailureListener(
+                                                                    exception -> {
+                                                                        // Model downloading failed.
+                                                                    });
+
+                                                    //Log.i("regex result", listOfHeadings.toString());
+                                                    //Log.i("title", receiptTitle);
+                                                    //Log.i("total: ", receiptTotal.toString());
+
+                                                    receiptInfoDialog.updateReceiptTitle(receiptTitle);
+                                                    receiptInfoDialog.updateReceiptTotal(receiptTotal);
+                                                    receiptInfoDialog.updateReceiptDate(receiptDateOCR);
+/*
+                                        for (Text.TextBlock block : visionText.getTextBlocks()) {
+                                            String blockText = block.getText();
+                                            Point[] blockCornerPoints = block.getCornerPoints();
+                                            Rect blockFrame = block.getBoundingBox();
+                                            for (Text.Line line : block.getLines()) {
+                                                String lineText = line.getText();
+                                                Point[] lineCornerPoints = line.getCornerPoints();
+                                                Rect lineFrame = line.getBoundingBox();
+                                                for (Text.Element element : line.getElements()) {
+                                                    String elementText = element.getText();
+                                                    Point[] elementCornerPoints = element.getCornerPoints();
+                                                    Rect elementFrame = element.getBoundingBox();
+                                                }
+                                            }
+                                        }
+*/                                                    ;                                    }
+                                            })
+                                            .addOnFailureListener(
+                                                    new OnFailureListener() {
+                                                        @Override
+                                                        public void onFailure(@NonNull Exception e) {
+                                                            e.printStackTrace();
+                                                        }
+                                                    });
+
+
+
+                            Receipt newReceipt = new Receipt(receiptTotal, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), receiptTitle, "Other", "", contentUri.toString(), false, false );
+
+                            receiptInfoDialog.updateReceiptPhoto(contentUri.toString());
+                            //receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
+                            //receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
+                        }
+                    }
+                });
 
     }
 
@@ -300,7 +481,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         //registering popup with OnMenuItemClickListener
         popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             public boolean onMenuItemClick(MenuItem item) {
-                Toast.makeText(getApplicationContext(),"You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(),"You Clicked : " + item.getTitle(), Toast.LENGTH_SHORT).show();
 
                 switch (item.getTitle().toString()){
                     case "CSV":
@@ -346,7 +527,14 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                             }
                         }
 
-                        Toast.makeText(getApplicationContext(),"Deleted " + (newReceiptArrayList.size() - receiptArrayList.size()) + " receipts", Toast.LENGTH_SHORT).show();
+                        Integer receiptCount = receiptArrayList.size() - newReceiptArrayList.size();
+                        String message = "Deleted " + (receiptArrayList.size() - newReceiptArrayList.size());
+                        if (receiptCount > 1){
+                             message += " receipts";
+                        } else {
+                            message += " receipt";
+                        }
+                        Toast.makeText(getApplicationContext(),message, Toast.LENGTH_SHORT).show();
 
                         receiptArrayList = newReceiptArrayList;
                         refreshReceiptAdapterArrayList();
@@ -415,6 +603,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
     private void refreshReceiptAdapterArrayList(){
         receiptAdapterArrayList.clear();
 
+
         if (receiptArrayList.size() > 0){
             Collections.sort(receiptArrayList, Collections.reverseOrder());
 
@@ -480,7 +669,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         editor.putString("receipts", json);
         editor.apply();
 
-        Toast.makeText(this, "Saved array", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
     }
 
 
@@ -513,7 +702,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         //Toast.makeText(this, "Camera Open Request", Toast.LENGTH_SHORT).show();
         dispatchTakePictureIntent();
     }
-
+/*
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -566,7 +755,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
                                         receiptInfoDialog.updateReceiptTitle(receiptTitle);
                                         receiptInfoDialog.updateReceiptTotal(receiptTotal);
-                                        /*
+
                                         for (Text.TextBlock block : visionText.getTextBlocks()) {
                                             String blockText = block.getText();
                                             Point[] blockCornerPoints = block.getCornerPoints();
@@ -581,7 +770,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                                                     Rect elementFrame = element.getBoundingBox();
                                                 }
                                             }
-                                        }*/
+                                        }
                                         ;                                    }
                                 })
                                 .addOnFailureListener(
@@ -601,7 +790,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 //receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
             }
         }
-    }
+    }*/
 
     String currentPhotoPath;
 
@@ -624,9 +813,11 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         takePictureIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
             // Create the File where the photo should go
+
             File photoFile = null;
             try {
                 photoFile = createImageFile();
@@ -642,7 +833,8 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                         photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 //Log.i("camera status", "opening");
-                startActivityForResult(takePictureIntent, 102);
+                //startActivityForResult(takePictureIntent, 102);
+                takePictureResultLauncher.launch(takePictureIntent);
             } else {
                 //Log.i("error", "photoFile is null");
             }
@@ -679,9 +871,10 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
 
         File file   = null;
-        File root   = Environment.getExternalStorageDirectory();
+        //File root   = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File root = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         if (root.canWrite()){
-            File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+            File dir    =   new File (root.getAbsolutePath() + "/ReceiptTrackerData");
             dir.mkdirs();
             file   =   new File(dir, "Data.csv");
             FileOutputStream out   =   null;
@@ -785,9 +978,11 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
 
             File file   = null;
-            File root   = Environment.getExternalStorageDirectory();
+            //File root   = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            File root = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+
             if (root.canWrite()){
-                File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+                File dir    =   new File (root.getAbsolutePath() + "/ReceiptTrackerData");
                 dir.mkdirs();
                 file   =   new File(dir, "Data.pdf");
                 FileOutputStream out   =   null;
@@ -803,6 +998,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 }
                 pdfDocument.close();
             }
+
 
             Uri u1  =   FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
             //u1  =   Uri.fromFile(file);
@@ -824,9 +1020,10 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     public void exportToZIP() throws IOException {
         File file   = null;
-        File root   = Environment.getExternalStorageDirectory();
+        //File root   = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File root = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         if (root.canWrite()){
-            File dir    =   new File (root.getAbsolutePath() + "/PersonData");
+            File dir    =   new File (root.getAbsolutePath() + "/ReceiptTrackerData");
             dir.mkdirs();
             file   =   new File(dir, "Data.zip");
             ZipOutputStream out = null;

@@ -26,11 +26,13 @@ public class ReceiptListAdapter extends ArrayAdapter<Receipt> {
     private static final String TAG = "ReceiptListAdapter";
     private Context mContext;
     int mResource;
+    private List<Receipt> objects;
 
     public ReceiptListAdapter(@NonNull Context context, int resource, @NonNull List<Receipt> objects) {
         super(context, resource, objects);
         this.mContext = context;
         this.mResource = resource;
+        this.objects = objects;
     }
 
     @NonNull
@@ -49,6 +51,7 @@ public class ReceiptListAdapter extends ArrayAdapter<Receipt> {
             //Receipt receipt = new Receipt(amount, currency, date, title, category, note, image);
 
             LayoutInflater inflater = LayoutInflater.from(mContext);
+
             convertView = inflater.inflate(R.layout.custom_list_view, parent, false);
 
             TextView rTitle = (TextView) convertView.findViewById(R.id.textView1);

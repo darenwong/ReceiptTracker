@@ -7,6 +7,7 @@
     android:background="@color/design_default_color_background"
     android:gravity="center"
     android:orientation="horizontal"
+    android:paddingTop="4dp"
     tools:ignore="UselessParent">
 
     <TextView

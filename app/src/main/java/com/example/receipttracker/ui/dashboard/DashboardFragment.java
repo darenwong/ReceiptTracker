@@ -31,11 +31,12 @@ import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+/*
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;*/
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -55,7 +56,7 @@ import static android.content.Context.MODE_PRIVATE;
 
 public class DashboardFragment extends Fragment {
 
-    private AdView mAdView;
+    //private AdView mAdView;
 
     private AutoCompleteTextView spinnerCurrency;
     private AutoCompleteTextView spinnerYear;
@@ -73,7 +74,7 @@ public class DashboardFragment extends Fragment {
     private Integer frequencySelected = 0;
 
     private Integer selectedYear = Calendar.getInstance().get(Calendar.YEAR);
-    private String selectedCurrency;
+    private String selectedCurrency = "MYR";
 
     private HashMap<String, HashMap<Integer, List<Float>>> receiptMap = new HashMap<String, HashMap<Integer, List<Float>>>();
     private HashMap<String, HashSet<Integer>> receiptCurrencyToYearMap = new HashMap<String, HashSet<Integer>>();
@@ -90,7 +91,7 @@ public class DashboardFragment extends Fragment {
         loadData();
         View root = inflater.inflate(R.layout.fragment_dashboard, container, false);
 
-
+/*
         MobileAds.initialize(getActivity(), new OnInitializationCompleteListener() {
             @Override
             public void onInitializationComplete(InitializationStatus initializationStatus) {
@@ -99,7 +100,7 @@ public class DashboardFragment extends Fragment {
         mAdView = root.findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
-
+*/
         totalAmountTextView = root.findViewById(R.id.totalAmount);
         totalReceiptsTextView = root.findViewById(R.id.totalReceipts);
 
@@ -215,8 +216,10 @@ public class DashboardFragment extends Fragment {
         spinnerYear = root.findViewById(R.id.spinner_year);
 
         //create a list of items for the spinner.
-        yearList = new ArrayList<Integer>(receiptMap.get(selectedCurrency).keySet());
-
+        yearList = new ArrayList<Integer>();
+        if (receiptMap.get(selectedCurrency) != null){
+            yearList = new ArrayList<Integer>(receiptMap.get(selectedCurrency).keySet());
+        }
 
         yearAdapter = new ArrayAdapter<Integer>(getContext(), R.layout.list_item, yearList);
         //set the spinners adapter to the previously created one.
@@ -314,6 +317,7 @@ public class DashboardFragment extends Fragment {
                 receiptCategoryMap.get(currency).get(receiptYear).put("Other", 0f);
             }
             Float categoryTotal = receiptCategoryMap.get(currency).get(receiptYear).get(receipt.getCategory());
+            Log.i("categoryTotal: ", categoryTotal.toString());
             receiptCategoryMap.get(currency).get(receiptYear).put(receipt.getCategory(), categoryTotal + receipt.getAmount());
         }
 
@@ -333,7 +337,7 @@ public class DashboardFragment extends Fragment {
         Float totalAmount = 0f;
         Float totalReceipts = 0f;
         for (Integer i = 0; i < 12; i ++){
-            if (selectedCurrency == null){
+            if (receiptMap.get(selectedCurrency) == null || receiptMap.get(selectedCurrency).get(selectedYear) == null){
                 valueSet.add(new BarEntry(i, 0f));
             } else {
                 valueSet.add(new BarEntry(i, receiptMap.get(selectedCurrency).get(selectedYear).get(i)));
@@ -374,7 +378,11 @@ public class DashboardFragment extends Fragment {
         String label = "";
 
         //initializing data
-        Map<String, Float> typeAmountMap = receiptCategoryMap.get(selectedCurrency).get(selectedYear);
+        Map<String, Float> typeAmountMap = new HashMap<String, Float>();
+
+        if (receiptCategoryMap.get(selectedCurrency) != null){
+            typeAmountMap = receiptCategoryMap.get(selectedCurrency).get(selectedYear);
+        }
 
         //initializing colors for the entries
         ArrayList<Integer> colors = new ArrayList<>();
@@ -388,9 +396,12 @@ public class DashboardFragment extends Fragment {
         colors.add(Color.parseColor("#6200ee"));
 
         //input data and fit data into pie chart entry
-        for(String type: typeAmountMap.keySet()){
-            pieEntries.add(new PieEntry(typeAmountMap.get(type).floatValue(), type));
+        if (typeAmountMap != null){
+            for(String type: typeAmountMap.keySet()){
+                pieEntries.add(new PieEntry(typeAmountMap.get(type).floatValue(), type));
+            }
         }
+
 
         //collecting the entries with label name
         PieDataSet pieDataSet = new PieDataSet(pieEntries,label);
