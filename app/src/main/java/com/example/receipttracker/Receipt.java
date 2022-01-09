@@ -5,6 +5,7 @@ import android.net.Uri;
 import java.util.Date;
 
 public class Receipt implements Comparable<Receipt> {
+    private Integer id;
     private Float amount;
     private String currency;
     private Date date;
@@ -15,7 +16,8 @@ public class Receipt implements Comparable<Receipt> {
     private Boolean isSummary;
     private Boolean isChecked;
 
-    public Receipt(Float amount, String currency, Date date, String title, String category, String note, String image, Boolean isSummary, Boolean isChecked) {
+    public Receipt(Integer id, Float amount, String currency, Date date, String title, String category, String note, String image, Boolean isSummary, Boolean isChecked) {
+        this.id = id;
         this.amount = amount;
         this.currency = currency;
         this.date = date;
@@ -25,6 +27,14 @@ public class Receipt implements Comparable<Receipt> {
         this.image = image;
         this.isSummary = isSummary;
         this.isChecked = isChecked;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public Float getAmount() {

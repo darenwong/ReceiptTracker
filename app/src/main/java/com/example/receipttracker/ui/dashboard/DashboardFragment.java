@@ -1,6 +1,7 @@
 package com.example.receipttracker.ui.dashboard;
 
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+import com.example.receipttracker.DBHelper;
 import com.example.receipttracker.MainActivity;
 import com.example.receipttracker.R;
 import com.example.receipttracker.Receipt;
@@ -68,7 +70,8 @@ public class DashboardFragment extends Fragment {
     private BarChart chart;
     private PieChart pieChart;
 
-    private ArrayList<Receipt> receiptArrayList;
+    private ArrayList<Receipt> receiptArrayList = new ArrayList<Receipt>();
+    private DBHelper db;
 
     private ArrayList<String> frequencyChoice = new ArrayList<>(Arrays.asList("Daily", "Monthly", "Yearly"));
     private Integer frequencySelected = 0;
@@ -88,6 +91,7 @@ public class DashboardFragment extends Fragment {
                              ViewGroup container, Bundle savedInstanceState) {
 
 
+        db = new DBHelper(getActivity());
         loadData();
         View root = inflater.inflate(R.layout.fragment_dashboard, container, false);
 
@@ -247,9 +251,44 @@ public class DashboardFragment extends Fragment {
 
         });
     }
+    private void loadDataFromDB() {
+        //db.dropTable();
+        Cursor cursor = db.getReceipt();
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+
+                Integer id_col = cursor.getColumnIndex("receipt_id");
+                Integer id = Integer.valueOf(cursor.getString(id_col));
+                Integer title_col = cursor.getColumnIndex("title");
+                String title = cursor.getString(title_col);
+
+                Integer amount_col = cursor.getColumnIndex("amount");
+                Float amount = Float.parseFloat(cursor.getString(amount_col));
+                Integer cur_col = cursor.getColumnIndex("currency");
+                String currency = cursor.getString(cur_col);
+                Integer date_col = cursor.getColumnIndex("date");
+                Date date = new Date(cursor.getString(date_col));
+                Integer cat_col = cursor.getColumnIndex("category");
+                String category = cursor.getString(cat_col);
+                Integer note_col = cursor.getColumnIndex("note");
+                String note = cursor.getString(note_col);
+                Integer img_col = cursor.getColumnIndex("image");
+                String image = cursor.getString(img_col);
+                Integer isSum_col = cursor.getColumnIndex("isSummary");
+                Boolean isSum = Boolean.parseBoolean(cursor.getString(isSum_col));
+                Integer isChecked_col = cursor.getColumnIndex("isChecked");
+                Boolean isChecked = Boolean.parseBoolean(cursor.getString(isChecked_col));
+
+                Receipt newReceipt = new Receipt(id,amount, currency, date, title, category, note, image, isSum, isChecked );
+
+                receiptArrayList.add(newReceipt);
+                cursor.moveToNext();
+            }
+        }
+    }
 
     private void loadData() {
-
+/*
         SharedPreferences sharedPreferences = getActivity().getSharedPreferences("com.example.receipttracker", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         //editor.clear().apply();
@@ -265,7 +304,9 @@ public class DashboardFragment extends Fragment {
 
         if (receiptArrayList == null){
             receiptArrayList = new ArrayList<Receipt>();
-        }
+        }*/
+
+        loadDataFromDB();
 
 
         Calendar cal = Calendar.getInstance();

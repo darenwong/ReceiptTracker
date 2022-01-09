@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 
+import android.database.Cursor;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Bitmap;
@@ -96,6 +97,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -120,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     private CheckBox selectAllCheckbox;
 
-    private ArrayList<Receipt> receiptArrayList;
+    private ArrayList<Receipt> receiptArrayList = new ArrayList<Receipt>();
     private ArrayList<Receipt> receiptAdapterArrayList = new ArrayList<Receipt>();
 
     private ReceiptListAdapter adapter;
@@ -137,6 +139,8 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     private ActivityResultLauncher<Intent> takePictureResultLauncher;
 
+    private DBHelper db;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -150,6 +154,21 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         mAdView = findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
+*/
+
+        db = new DBHelper(this);
+/*
+        Receipt newReceipt = new Receipt(0.0f, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), "", "Other", "", "", false, false );
+
+        db.insertReceipt(newReceipt);
+        Log.i("receipt inserted", "ok");
+        Cursor cursor = db.getReceipt();
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+                Log.i("cursor val", cursor.getString(0));
+                cursor.moveToNext();
+            }
+        }
 */
         Toolbar myToolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(myToolbar);
@@ -263,15 +282,14 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 //askCameraPermissions();
 
 
-                Receipt newReceipt = new Receipt(0.0f, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), "", "Other", "", "", false, false );
+                Receipt newReceipt = new Receipt(-1,0.0f, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), "", "Other", "", "", false, false );
 
                 receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
                 receiptInfoDialog.show(getSupportFragmentManager(), "receiptInfoDialog");
             }
         });
 
-
-        loadData();
+        refreshReceiptAdapterArrayList();
 
         recordListView = findViewById(R.id.recordListView);
         recordListView.setOnItemClickListener(new  android.widget.AdapterView.OnItemClickListener() {
@@ -455,7 +473,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
 
 
-                            Receipt newReceipt = new Receipt(receiptTotal, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), receiptTitle, "Other", "", contentUri.toString(), false, false );
+                            //Receipt newReceipt = new Receipt(receiptTotal, getPreferences(Context.MODE_PRIVATE).getString("saved_currency", "MYR"), new Date(), receiptTitle, "Other", "", contentUri.toString(), false, false );
 
                             receiptInfoDialog.updateReceiptPhoto(contentUri.toString());
                             //receiptInfoDialog = new ReceiptInfoDialog(newReceipt, adapter, true);
@@ -520,27 +538,25 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 .setCancelable(false)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        ArrayList<Receipt> newReceiptArrayList = new ArrayList<Receipt>();
+                        Integer countDeleted = 0;
+
                         for (Receipt receipt: receiptArrayList){
-                            if (receipt.getChecked() == false){
-                                newReceiptArrayList.add(receipt);
+                            if (receipt.getChecked() == true){
+                                db.deleteReceipt(receipt);
+                                countDeleted += 1;
                             }
                         }
 
-                        Integer receiptCount = receiptArrayList.size() - newReceiptArrayList.size();
-                        String message = "Deleted " + (receiptArrayList.size() - newReceiptArrayList.size());
-                        if (receiptCount > 1){
+                        String message = "Deleted " + countDeleted;
+                        if (countDeleted > 1){
                              message += " receipts";
                         } else {
                             message += " receipt";
                         }
                         Toast.makeText(getApplicationContext(),message, Toast.LENGTH_SHORT).show();
 
-                        receiptArrayList = newReceiptArrayList;
                         refreshReceiptAdapterArrayList();
                         adapter.notifyDataSetChanged();
-
-                        saveData();
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {
@@ -572,11 +588,13 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
     public void onInputReceiptSent(Receipt receipt, Boolean isCreateNew) {
         //Log.i("received data", isCreateNew.toString());
         if (isCreateNew == true){
-            receiptArrayList.add(receipt);
+            //receiptArrayList.add(receipt);
+            db.insertReceipt(receipt);
+        } else {
+            db.updateReceipt(receipt);
         }
         refreshReceiptAdapterArrayList();
         adapter.notifyDataSetChanged();
-        saveData();
     }
 
     @Override
@@ -602,7 +620,8 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
     private void refreshReceiptAdapterArrayList(){
         receiptAdapterArrayList.clear();
-
+        receiptArrayList.clear();
+        loadData();
 
         if (receiptArrayList.size() > 0){
             Collections.sort(receiptArrayList, Collections.reverseOrder());
@@ -631,13 +650,13 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
                 }
                 //Log.i(String.valueOf(i), before + " vs " + after);
                 if (i == 0 || !before.equals(after)){
-                    receiptAdapterArrayList.add(new Receipt(null, null, receiptArrayList.get(i).getDate(), null, null, null, null, true, false));
+                    receiptAdapterArrayList.add(new Receipt(-1,null, null, receiptArrayList.get(i).getDate(), null, null, null, null, true, false));
                 }
                 receiptAdapterArrayList.add(receiptArrayList.get(i));
             }
         }
     }
-
+/*
     private void loadData() {
 
         SharedPreferences sharedPreferences = this.getSharedPreferences("com.example.receipttracker", MODE_PRIVATE);
@@ -658,8 +677,48 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
         }
         refreshReceiptAdapterArrayList();
         //receiptArrayList.add(new Receipt(null, null, null, null, null, null, null, true));
-    }
+    }*/
 
+
+    private void loadData() {
+        //db.dropTable();
+        Cursor cursor = db.getReceipt();
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+                Log.i("all column", Arrays.toString(cursor.getColumnNames()));
+
+                Integer id_col = cursor.getColumnIndex("receipt_id");
+                Integer id = Integer.valueOf(cursor.getString(id_col));
+                Integer title_col = cursor.getColumnIndex("title");
+                String title = cursor.getString(title_col);
+
+                Integer amount_col = cursor.getColumnIndex("amount");
+                Float amount = Float.parseFloat(cursor.getString(amount_col));
+                Integer cur_col = cursor.getColumnIndex("currency");
+                String currency = cursor.getString(cur_col);
+                Integer date_col = cursor.getColumnIndex("date");
+                Date date = new Date(cursor.getString(date_col));
+                Integer cat_col = cursor.getColumnIndex("category");
+                String category = cursor.getString(cat_col);
+                Integer note_col = cursor.getColumnIndex("note");
+                String note = cursor.getString(note_col);
+                Integer img_col = cursor.getColumnIndex("image");
+                String image = cursor.getString(img_col);
+                Integer isSum_col = cursor.getColumnIndex("isSummary");
+                Boolean isSum = Boolean.parseBoolean(cursor.getString(isSum_col));
+                Integer isChecked_col = cursor.getColumnIndex("isChecked");
+                Boolean isChecked = Boolean.parseBoolean(cursor.getString(isChecked_col));
+
+
+                Log.i("cursor val", id+title + currency + date + category + note + image + isSum + isChecked);
+                Receipt newReceipt = new Receipt(id,amount, currency, date, title, category, note, image, isSum, isChecked );
+
+                receiptArrayList.add(newReceipt);
+                cursor.moveToNext();
+            }
+        }
+    }
+/*
     private void saveData() {
         SharedPreferences sharedPreferences = this.getSharedPreferences("com.example.receipttracker", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -671,9 +730,7 @@ public class MainActivity extends AppCompatActivity implements ReceiptInfoDialog
 
         Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
     }
-
-
-
+*/
 
     public void askCameraPermissions() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED){
